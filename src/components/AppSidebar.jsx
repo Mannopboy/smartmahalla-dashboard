@@ -22,9 +22,9 @@ const items = [
 export function AppSidebar() {
     const {state} = useSidebar();
     const collapsed = state === "collapsed";
-    return (<Sidebar collapsible="icon" className="border-r border-border">
+    return (<Sidebar collapsible="icon" className="border-r ">
         <SidebarContent className="pt-4">
-            {!collapsed ? (<div className="px-4 pb-4 mb-2 border-b border-border">
+            {!collapsed ? (<div className="px-4 pb-4 mb-2 border-b ">
                 <div className="flex items-center gap-2.5">
                     <div className="relative">
                         <div
@@ -41,7 +41,7 @@ export function AppSidebar() {
                     </div>
                 </div>
 
-            </div>) : (<div className="flex justify-center pb-4 mb-2 border-b border-border">
+            </div>) : (<div className="flex justify-center pb-4 mb-2 border-b ">
                 <div className="relative">
                     <div
                         className="absolute -inset-0.5 rounded-xl bg-gradient-to-br from-primary to-warning opacity-75 blur-sm"/>

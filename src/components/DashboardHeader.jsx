@@ -11,7 +11,7 @@ const DashboardHeader = () => {
       hour < 12 ? "Xayrli tong" : hour < 18 ? "Xayrli kun" : "Xayrli kech";
 
   return (
-      <header className="sticky top-0 z-50 border-b border-border overflow-hidden">
+      <header className="sticky top-0 z-50 border-b  overflow-hidden">
         {/* Gradient accent bar */}
         <div className="h-1 bg-gradient-to-r from-primary via-warning to-success" />
 
@@ -63,7 +63,7 @@ const DashboardHeader = () => {
                   <input
                       type="text"
                       placeholder="Mahalla, muammo yoki tashkilot qidirish..."
-                      className="w-full h-11 pl-10 pr-4 rounded-2xl bg-muted/60 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-card transition-all"
+                      className="w-full h-11 pl-10 pr-4 rounded-2xl bg-muted/60 border  text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-card transition-all"
                   />
                 </div>
               </div>

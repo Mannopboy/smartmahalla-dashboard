@@ -60,7 +60,7 @@ const StatCards = () => {
         },
     ];
     return (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (<motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.4 }} onClick={() => navigate(stat.link)} className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${stat.gradient} p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ring-1 ${stat.ring}`}>
+        {stats.map((stat, i) => (<motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08, duration: 0.4 }} onClick={() => navigate(stat.link)} className={`group relative overflow-hidden rounded-2xl border  bg-gradient-to-br ${stat.gradient} p-5 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ring-1 ${stat.ring}`}>
             {/* Decorative circle */}
             <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-card/30 to-transparent opacity-60"/>
 
