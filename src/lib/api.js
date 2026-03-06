@@ -9,7 +9,8 @@ const get = async (path) => {
     return res.json();
 };
 
-const toText = (value) => (typeof value === "string" ? value : String(value ?? ""));
+const toText = (value) =>
+    typeof value === "string" ? value : String(value ?? "");
 
 const toArray = (value) => {
     if (Array.isArray(value)) return value;
@@ -22,6 +23,8 @@ const toNumber = (value, fallback = 0) => {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
 };
+
+const normalizeName = (value) => toText(value).trim().toLowerCase();
 
 const normalizeStatus = (status = "") => {
     const s = toText(status).toLowerCase();
@@ -77,10 +80,22 @@ const mapComplaint = (complaint, mahallaName) => ({
 
 export const api = {
     getDashboard: async () => {
-        const data = await get("/dashboard");
+        const [dashboardData, mahallalarData] = await Promise.all([
+            get("/dashboard"),
+            get("/mahallalar").catch(() => []),
+        ]);
 
         const payload =
-            data?.data && !Array.isArray(data.data) ? data.data : data;
+            dashboardData?.data && !Array.isArray(dashboardData.data)
+                ? dashboardData.data
+                : dashboardData;
+
+        const idByName = new Map(
+            toArray(mahallalarData).map((m) => [
+                normalizeName(m.name),
+                m.id,
+            ])
+        );
 
         return {
             ...payload,
@@ -88,20 +103,48 @@ export const api = {
             total_complaints: toNumber(payload?.total_complaints),
             resolved_percent: toNumber(payload?.resolved_percent),
             open_tasks: toNumber(payload?.open_tasks),
-            top_mahallas: toArray(payload?.top_mahallas),
+
+            top_mahallas: toArray(payload?.top_mahallas).map((item) => ({
+                ...item,
+                id: item?.id ?? idByName.get(normalizeName(item?.name)),
+                complaints: toNumber(item?.complaints),
+                resolved_percent: toNumber(item?.resolved_percent),
+            })),
         };
     },
 
     getMahallalar: async () => {
-        const data = await get("/mahallalar");
+        const [mahallalarData, dashboardData] = await Promise.all([
+            get("/mahallalar"),
+            get("/dashboard").catch(() => null),
+        ]);
 
-        return toArray(data).map((m) => ({
-            ...m,
-            complaints: toNumber(m.complaints),
-            population: toNumber(m.population),
-            resolved: toNumber(m.resolved_percent),
-            ...(mahallaCoords[m.name] || {}),
-        }));
+        const dashboardPayload =
+            dashboardData?.data && !Array.isArray(dashboardData.data)
+                ? dashboardData.data
+                : dashboardData;
+
+        const statByName = new Map(
+            toArray(dashboardPayload?.top_mahallas).map((item) => [
+                normalizeName(item?.name),
+                item,
+            ])
+        );
+
+        return toArray(mahallalarData).map((m) => {
+            const stat = statByName.get(normalizeName(m.name));
+
+            return {
+                ...m,
+                complaints: toNumber(m.complaints, toNumber(stat?.complaints)),
+                population: toNumber(m.population),
+                resolved: toNumber(
+                    m.resolved_percent,
+                    toNumber(stat?.resolved_percent)
+                ),
+                ...(mahallaCoords[m.name] || {}),
+            };
+        });
     },
 
     getMahallaDetail: async (id) => {
@@ -116,7 +159,18 @@ export const api = {
         };
     },
 
-    getOrganizations: () => get("/organizations"),
+    getOrganizations: async () => {
+        const data = await get("/organizations");
+
+        return toArray(data).map((o) => ({
+            ...o,
+            address: toText(o.address ?? o.adress),
+            phone: toText(o.phone),
+            total: toNumber(o.total),
+            done: toNumber(o.done),
+            in_progress: toNumber(o.in_progress),
+        }));
+    },
 
     getTasks: async () => {
         const data = await get("/tasks");
@@ -140,7 +194,9 @@ export const api = {
         );
 
         return details.flatMap((d) =>
-            (d.complaints || []).map((c) => mapComplaint(c, d.name))
+            (d.complaints || []).map((c) =>
+                mapComplaint(c, d.name)
+            )
         );
     },
 };

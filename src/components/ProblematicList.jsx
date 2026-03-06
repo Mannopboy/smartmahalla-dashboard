@@ -30,8 +30,10 @@ const ProblematicList = () => {
                 {topMahallas.map((item, index) => (
                     <div
                         key={item.name}
-                        onClick={() => navigate(`/mahallalar/${item.id}`)}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => item.id && navigate(`/mahallalar/${item.id}`)}
+                        className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                            item.id ? "hover:bg-muted cursor-pointer" : "opacity-80"
+                        }`}
                     >
                         <div
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
