@@ -16,6 +16,7 @@ export const MAHALLA_NAMES = [
   "Kamolot",
   "Tinchlik",
   "Ma'rifat",
+
   "Baxt",
   "Nurobod",
   "Istiqlol",

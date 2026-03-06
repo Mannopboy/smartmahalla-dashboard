@@ -1,96 +1,79 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import BackButton from "@/components/BackButton";
-import { mahallasData } from "@/data/mahallas";
-
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
+    ResponsiveContainer,
+    BarChart,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Tooltip,
+    Bar,
+    Cell,
 } from "recharts";
 
-const data = mahallasData
-    .map((m) => ({
-      name: m.name,
-      resolved: m.resolved,
-    }))
-    .sort((a, b) => b.resolved - a.resolved);
+import { api } from "@/lib/api";
+import { useApiData } from "@/hooks/useApiData";
 
-const getBarColor = (val) => {
-  if (val >= 80) return "hsl(142, 71%, 45%)";
-  if (val >= 60) return "hsl(38, 92%, 50%)";
-  return "hsl(0, 84%, 60%)";
-};
+const getBarColor = (value) =>
+    value >= 70 ? "#10b981" : value >= 40 ? "#f59e0b" : "#ef4444";
 
 const HalQilingan = () => {
-  return (
-      <DashboardLayout>
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <BackButton />
-            <h1 className="text-2xl font-bold text-foreground">
-              Hal Qilinganlar
-            </h1>
-          </div>
+    const { data: mahallasData } = useApiData(api.getMahallalar, []);
 
-          <div className="gov-card">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              Mahallalar bo'yicha hal qilinganlik darajasi (%)
-            </h2>
+    const data = [...mahallasData].sort((a, b) => b.resolved - a.resolved);
 
-            <ResponsiveContainer
-                width="100%"
-                height={Math.max(400, data.length * 28)}
-            >
-              <BarChart
-                  data={data}
-                  layout="vertical"
-                  margin={{ left: 120, right: 20, top: 5, bottom: 5 }}
-              >
-                <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(214, 32%, 91%)"
-                />
+    return (
+        <DashboardLayout>
+            <div className="animate-fade-in">
+                <div className="flex items-center gap-3 mb-6">
+                    <BackButton />
+                    <h1 className="text-2xl font-bold text-foreground">
+                        Hal Qilinganlar
+                    </h1>
+                </div>
 
-                <XAxis
-                    type="number"
-                    domain={[0, 100]}
-                    tick={{ fontSize: 12 }}
-                    stroke="hsl(215, 16%, 47%)"
-                />
+                <div className="gov-card">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">
+                        Mahallalar bo'yicha hal qilinganlik darajasi (%)
+                    </h2>
 
-                <YAxis
-                    dataKey="name"
-                    type="category"
-                    tick={{ fontSize: 11 }}
-                    stroke="hsl(215, 16%, 47%)"
-                    width={110}
-                />
+                    <ResponsiveContainer
+                        width="100%"
+                        height={Math.max(400, data.length * 28)}
+                    >
+                        <BarChart
+                            data={data}
+                            layout="vertical"
+                            margin={{ left: 120, right: 20, top: 5, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" />
 
-                <Tooltip
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid hsl(214, 32%, 91%)",
-                      boxShadow: "0 4px 12px hsl(0 0% 0% / 0.08)",
-                    }}
-                    formatter={(value) => [`${value}%`, "Hal qilingan"]}
-                />
+                            <XAxis type="number" domain={[0, 100]} />
 
-                <Bar dataKey="resolved" radius={[0, 8, 8, 0]}>
-                  {data.map((entry, i) => (
-                      <Cell key={i} fill={getBarColor(entry.resolved)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </DashboardLayout>
-  );
+                            <YAxis
+                                dataKey="name"
+                                type="category"
+                                width={110}
+                            />
+
+                            <Tooltip
+                                formatter={(value) => [`${value}%`, "Hal qilingan"]}
+                            />
+
+                            <Bar dataKey="resolved" radius={[0, 8, 8, 0]}>
+                                {data.map((entry, i) => (
+                                    <Cell
+                                        key={i}
+                                        fill={getBarColor(entry.resolved)}
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </DashboardLayout>
+    );
 };
 
 export default HalQilingan;
