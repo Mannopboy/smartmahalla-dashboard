@@ -8,8 +8,16 @@ const get = async (path) => {
     return res.json();
 };
 
+const toText = (value) => (typeof value === "string" ? value : String(value ?? ""));
+const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.data)) return value.data;
+    if (Array.isArray(value?.items)) return value.items;
+    return [];
+};
+
 const normalizeStatus = (status = "") => {
-    const s = status.toLowerCase();
+    const s = toText(status).toLowerCase();
     if (s === "yangi") return "Yangi";
     if (s === "yuklandi") return "Yuklandi";
     if (s === "jarayonda") return "Jarayonda";
@@ -18,7 +26,7 @@ const normalizeStatus = (status = "") => {
 };
 
 const normalizePriority = (priority = "") => {
-    const p = priority.toLowerCase();
+    const p = toText(priority).toLowerCase();
     if (p === "yuqori") return "Yuqori";
     if (p === "o'rta" || p === "orta") return "O'rta";
     if (p === "past") return "Past";
@@ -26,19 +34,23 @@ const normalizePriority = (priority = "") => {
 };
 
 const normalizeCategory = (category = "") => {
-    const c = category.toLowerCase();
+    const categoryText = toText(category);
+    const c = categoryText.toLowerCase();
     if (c === "kommunal") return "Kommunal";
     if (c === "ekologiya") return "Ekologiya";
     if (c === "adliya") return "Adliya";
     if (c === "yo'l" || c === "yol") return "Yo'l";
     return category ? category[0].toUpperCase() + category.slice(1) : "Kommunal";
+    return categoryText ? categoryText[0].toUpperCase() + categoryText.slice(1) : "Kommunal";
 };
 
 const normalizeSource = (source = "") => {
-    if (source === "landing-page") return "Landing Page";
-    if (source === "telegram-bot") return "Telegram Bot";
-    if (source === "ai") return "AI";
     return source || "AI";
+    const sourceText = toText(source);
+    if (sourceText === "landing-page") return "Landing Page";
+    if (sourceText === "telegram-bot") return "Telegram Bot";
+    if (sourceText === "ai") return "AI";
+    return sourceText || "AI";
 };
 
 const mapComplaint = (complaint, mahallaName) => ({
@@ -56,7 +68,7 @@ export const api = {
     getDashboard: () => get("/dashboard"),
     getMahallalar: async () => {
         const data = await get("/mahallalar");
-        return data.map((m) => ({ ...m, resolved: m.resolved_percent, ...(mahallaCoords[m.name] || {}) }));
+        return toArray(data).map((m) => ({ ...m, resolved: m.resolved_percent, ...(mahallaCoords[m.name] || {}) }));
     },
     getMahallaDetail: async (id) => {
         const data = await get(`/mahalla/${id}`);
@@ -69,18 +81,18 @@ export const api = {
     getOrganizations: () => get("/organizations"),
     getTasks: async () => {
         const data = await get("/tasks");
-        return data.map((t) => ({
-            ...t,
-            status: normalizeStatus(t.status),
-            priority: normalizePriority(t.priority),
-            mahalla: t.mahalla?.name,
-            org: t.organization?.name,
-        }));
-    },
-    getAnalytics: () => get("/analytics"),
-    getAllProblems: async () => {
-        const mahallas = await get("/mahallalar");
-        const details = await Promise.all(mahallas.map((m) => get(`/mahalla/${m.id}`)));
-        return details.flatMap((d) => (d.complaints || []).map((c) => mapComplaint(c, d.name)));
-    },
-};
+                return toArray(data).map((t) => ({
+                    ...t,
+                    status: normalizeStatus(t.status),
+                    priority: normalizePriority(t.priority),
+                    mahalla: t.mahalla?.name,
+                    org: t.organization?.name,
+                }));
+            },
+                getAnalytics: () => get("/analytics"),
+            getAllProblems: async () => {
+            const mahallas = await get("/mahallalar");
+            const details = await Promise.all(toArray(mahallas).map((m) => get(`/mahalla/${m.id}`)));
+            return details.flatMap((d) => (d.complaints || []).map((c) => mapComplaint(c, d.name)));
+        },
+    };
