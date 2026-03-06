@@ -16,6 +16,10 @@ const ProblematicList = () => {
         top_mahallas: [],
     });
 
+    const topMahallas = Array.isArray(data?.top_mahallas)
+        ? data.top_mahallas
+        : [];
+
     return (
         <div className="gov-card h-full flex flex-col">
             <h2 className="text-lg font-semibold text-foreground mb-4">
@@ -23,7 +27,7 @@ const ProblematicList = () => {
             </h2>
 
             <div className="flex-1 space-y-3 overflow-y-auto">
-                {data.top_mahallas?.map((item, index) => (
+                {topMahallas.map((item, index) => (
                     <div
                         key={item.name}
                         onClick={() => navigate(`/mahallalar/${item.id}`)}
@@ -42,7 +46,7 @@ const ProblematicList = () => {
                             </p>
 
                             <p className="text-xs text-muted-foreground">
-                                {item.complaints} ta shikoyat
+                                {Number(item.complaints) || 0} ta shikoyat
                             </p>
                         </div>
                     </div>

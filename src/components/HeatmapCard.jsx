@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Layers, MapIcon, Satellite } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+import { Map as MapIcon, Satellite, Layers } from "lucide-react";
+
 import { api } from "@/lib/api";
 
 const tiles = {
@@ -12,7 +14,7 @@ const tiles = {
         options: { maxZoom: 19 },
     },
     satellite: {
-        url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
         label: "Satellite",
         options: { maxZoom: 17 },
     },
@@ -38,6 +40,11 @@ const getColor = (count) =>
 
 const CHIRCHIQ_CENTER = [41.4689, 69.5822];
 
+const toNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 const HeatmapCard = () => {
     const [style, setStyle] = useState("street");
     const [isMapReady, setIsMapReady] = useState(false);
@@ -59,39 +66,65 @@ const HeatmapCard = () => {
             tiles.street.options
         ).addTo(map);
 
-        api.getMahallalar().then((mahallas) => {
-            mahallas.forEach((m) => {
-                if (!m.lat || !m.lng) return;
+        api
+            .getMahallalar()
+            .then((mahallas) => {
+                mahallas.forEach((m) => {
+                    const lat = toNumber(m.lat, null);
+                    const lng = toNumber(m.lng, null);
+                    const complaints = toNumber(m.complaints);
+                    const resolved = toNumber(m.resolved);
 
-                L.circle([m.lat, m.lng], {
-                    radius: 200 + m.complaints * 2,
-                    color: getColor(m.complaints),
-                    fillColor: getColor(m.complaints),
-                    fillOpacity: 0.15,
-                    weight: 2,
-                }).addTo(map);
+                    if (lat === null || lng === null) return;
 
-                const marker = L.circleMarker([m.lat, m.lng], {
-                    radius: Math.max(6, Math.min(14, m.complaints / 6)),
-                    color: getColor(m.complaints),
-                    fillColor: getColor(m.complaints),
-                    fillOpacity: 0.7,
-                    weight: 2,
+                    try {
+                        L.circle([lat, lng], {
+                            radius: Math.max(150, 200 + complaints * 2),
+                            color: getColor(complaints),
+                            fillColor: getColor(complaints),
+                            fillOpacity: 0.15,
+                            weight: 2,
+                        }).addTo(map);
+
+                        const marker = L.circleMarker([lat, lng], {
+                            radius: Math.max(6, Math.min(14, complaints / 6)),
+                            color: getColor(complaints),
+                            fillColor: getColor(complaints),
+                            fillOpacity: 0.7,
+                            weight: 2,
+                        });
+
+                        marker.bindPopup(`
+              <strong>${m.name || "Noma'lum mahalla"}</strong><br/>
+              Shikoyatlar: ${complaints}<br/>
+              Hal qilingan: ${resolved}%
+            `);
+
+                        if (m.id) {
+                            marker.on("click", () =>
+                                navigate(`/mahallalar/${m.id}`)
+                            );
+                        }
+
+                        marker.addTo(map);
+                    } catch (error) {
+                        console.error(
+                            "Mahalla markerini chizishda xatolik:",
+                            error,
+                            m
+                        );
+                    }
                 });
 
-                marker.bindPopup(`
-          <strong>${m.name}</strong><br/>
-          Shikoyatlar: ${m.complaints}<br/>
-          Hal qilingan: ${m.resolved}%
-        `);
-
-                marker.on("click", () => navigate(`/mahallalar/${m.id}`));
-
-                marker.addTo(map);
+                setIsMapReady(true);
+            })
+            .catch((error) => {
+                console.error(
+                    "Mahallalar ma'lumotini olishda xatolik:",
+                    error
+                );
+                setIsMapReady(true);
             });
-
-            setIsMapReady(true);
-        });
 
         return () => map.remove();
     }, [navigate]);
@@ -138,6 +171,7 @@ const HeatmapCard = () => {
 
             <div className="relative flex-1 rounded-2xl overflow-hidden border border-border">
                 <div ref={mapElementRef} className="absolute inset-0" />
+
                 {!isMapReady && (
                     <div className="absolute inset-0 bg-muted animate-pulse" />
                 )}

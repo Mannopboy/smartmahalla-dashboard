@@ -14,32 +14,35 @@ import Analitika from "./pages/Analitika.jsx";
 import HalQilingan from "./pages/HalQilingan.jsx";
 import Tashkilotlar from "./pages/Tashkilotlar.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import AppErrorBoundary from "@/components/AppErrorBoundary.jsx";
 
 const queryClient = new QueryClient();
 
 const App = () => (
     <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-            <Toaster />
-            <Sonner />
+            <AppErrorBoundary>
+                <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
 
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/mahallalar" element={<Mahallalar />} />
-                    <Route path="/mahallalar/:id" element={<MahallaDetail />} />
-                    <Route path="/shikoyatlar" element={<Shikoyatlar />} />
-                    <Route path="/vazifalar" element={<Vazifalar />} />
-                    <Route path="/analitika" element={<Analitika />} />
-                    <Route path="/hal-qilingan" element={<HalQilingan />} />
-                    <Route path="/tashkilotlar" element={<Tashkilotlar />} />
+                    <BrowserRouter>
+                        <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/mahallalar" element={<Mahallalar />} />
+                            <Route path="/mahallalar/:id" element={<MahallaDetail />} />
+                            <Route path="/shikoyatlar" element={<Shikoyatlar />} />
+                            <Route path="/vazifalar" element={<Vazifalar />} />
+                            <Route path="/analitika" element={<Analitika />} />
+                            <Route path="/hal-qilingan" element={<HalQilingan />} />
+                            <Route path="/tashkilotlar" element={<Tashkilotlar />} />
 
-                    {/* 404 page */}
-                    <Route path="*" element={<NotFound />} />
-                </Routes>
-            </BrowserRouter>
+                            {/* 404 page */}
+                            <Route path="*" element={<NotFound />} />
+                        </Routes>
+                    </BrowserRouter>
         </TooltipProvider>
-    </QueryClientProvider>
+    </AppErrorBoundary>
+</QueryClientProvider>
 );
 
 export default App;
