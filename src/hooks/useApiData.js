@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
-export const useApiData = (fetcher, initialData) => {
+export const useApiData = (fetcher, initialData, deps = []) => {
     const [data, setData] = useState(initialData);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const isFirstMount = useRef(true);
+    const prevDepsRef = useRef(deps);
 
-    const refetch = useCallback(async () => {
+    const refetch = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -16,11 +18,22 @@ export const useApiData = (fetcher, initialData) => {
         } finally {
             setLoading(false);
         }
-    }, [fetcher]);
+    };
 
     useEffect(() => {
-        refetch();
-    }, [refetch]);
+        if (isFirstMount.current) {
+            isFirstMount.current = false;
+            refetch();
+            return;
+        }
+
+        const depsChanged = JSON.stringify(deps) !== JSON.stringify(prevDepsRef.current);
+        prevDepsRef.current = deps;
+
+        if (depsChanged) {
+            refetch();
+        }
+    }, deps);
 
     return { data, loading, error, refetch };
 };

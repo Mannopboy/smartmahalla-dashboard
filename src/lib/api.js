@@ -3,10 +3,91 @@ import { fallbackProblemIcon, mahallaCoords } from "@/lib/constants";
 const API_BASE =
     import.meta.env.VITE_API_BASE_URL || "http://100.126.4.84:5000/api";
 
-const get = async (path) => {
-    const res = await fetch(`${API_BASE}${path}`);
+const get = async (path, options = {}) => {
+    const token = localStorage.getItem("access_token");
+    const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+    };
+    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     return res.json();
+};
+
+export const login = async (username, password) => {
+    const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) throw new Error(`Login error: ${res.status}`);
+    const data = await res.json();
+    if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+    }
+    return data;
+};
+
+export const logout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+};
+
+export const getUser = () => {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+};
+
+export const getOrganizations = async () => {
+    const data = await get("/register");
+    return data.organizations || [];
+};
+
+export const registerUser = async (userData) => {
+    const token = localStorage.getItem("access_token");
+    const res = await fetch(`${API_BASE}/register`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(userData),
+    });
+    if (!res.ok) throw new Error(`Register error: ${res.status}`);
+    return res.json();
+};
+
+export const downloadMahallaReport = async (mahallaId, startDate, endDate) => {
+    const token = localStorage.getItem("access_token");
+    const url = `${API_BASE}/mahalla/report/${mahallaId}?start=${startDate}&end=${endDate}`;
+    
+    const response = await fetch(url, {
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+    });
+
+    if (!response.ok) throw new Error(`Download error: ${response.status}`);
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get("Content-Disposition");
+    let filename = `mahalla_${mahallaId}_report.doc`;
+    
+    if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^";\n]+)"?/);
+        if (filenameMatch) filename = filenameMatch[1];
+    }
+
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 };
 
 const toText = (value) =>
@@ -150,12 +231,31 @@ export const api = {
     getMahallaDetail: async (id) => {
         const data = await get(`/mahalla/${id}`);
 
+        const normalizeStatus = (status = "") => {
+            const s = String(status).toLowerCase();
+            if (s === "new") return "Yangi";
+            if (s === "downloaded") return "Yuklandi";
+            if (s === "in_progress") return "Jarayonda";
+            if (s === "resolved") return "Bajarildi";
+            return status;
+        };
+
         return {
             ...data,
-            resolved: data.resolved_percent,
-            problems: (data.complaints || []).map((c) =>
-                mapComplaint(c, data.name)
-            ),
+            resolved: data.resolved_percent || 0,
+            active_issues: data.active_issues || 0,
+            population: toNumber(data.population),
+            total_complaints: data.total_complaints || 0,
+            categories: data.categories || {},
+            problems: (data.complaints || []).map((c) => ({
+                id: c.id,
+                title: c.text,
+                description: c.text,
+                status: normalizeStatus(c.status),
+                category: "Kommunal",
+                priority: "O'rta",
+                date: c.created_at || "",
+            })),
         };
     },
 

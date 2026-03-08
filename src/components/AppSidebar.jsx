@@ -1,4 +1,4 @@
-import {LayoutDashboard, BarChart3, Settings, Landmark, Sparkles,} from "lucide-react";
+import {LayoutDashboard, BarChart3, Settings, Landmark, Sparkles, UserPlus,} from "lucide-react";
 import {NavLink} from "@/components/NavLink";
 import {
     Sidebar,
@@ -16,6 +16,7 @@ const items = [
     {title: "Dashboard", url: "/", icon: LayoutDashboard},
     {title: "Tashkilotlar", url: "/tashkilotlar", icon: Landmark},
     {title: "Analitika", url: "/analitika", icon: BarChart3},
+    {title: "Ro'yxatdan o'tkazish", url: "/register", icon: UserPlus},
     {title: "Sozlamalar", url: "/sozlamalar", icon: Settings},
 ];
 

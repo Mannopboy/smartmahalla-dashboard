@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner.jsx";
 import { TooltipProvider } from "@/components/ui/tooltip.jsx";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Index from "./pages/Index.jsx";
 import Mahallalar from "./pages/Mahallalar.jsx";
@@ -14,7 +14,18 @@ import Analitika from "./pages/Analitika.jsx";
 import HalQilingan from "./pages/HalQilingan.jsx";
 import Tashkilotlar from "./pages/Tashkilotlar.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary.jsx";
+import { getUser } from "@/lib/api.js";
+
+const ProtectedRoute = ({ children }) => {
+    const user = getUser();
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+};
 
 const queryClient = new QueryClient();
 
@@ -27,14 +38,35 @@ const App = () => (
 
                     <BrowserRouter>
                         <Routes>
-                            <Route path="/" element={<Index />} />
-                            <Route path="/mahallalar" element={<Mahallalar />} />
-                            <Route path="/mahallalar/:id" element={<MahallaDetail />} />
-                            <Route path="/shikoyatlar" element={<Shikoyatlar />} />
-                            <Route path="/vazifalar" element={<Vazifalar />} />
-                            <Route path="/analitika" element={<Analitika />} />
-                            <Route path="/hal-qilingan" element={<HalQilingan />} />
-                            <Route path="/tashkilotlar" element={<Tashkilotlar />} />
+                            <Route path="/login" element={<Login />} />
+                            
+                            <Route path="/" element={
+                                <ProtectedRoute><Index /></ProtectedRoute>
+                            } />
+                            <Route path="/mahallalar" element={
+                                <ProtectedRoute><Mahallalar /></ProtectedRoute>
+                            } />
+                            <Route path="/mahallalar/:id" element={
+                                <ProtectedRoute><MahallaDetail /></ProtectedRoute>
+                            } />
+                            <Route path="/shikoyatlar" element={
+                                <ProtectedRoute><Shikoyatlar /></ProtectedRoute>
+                            } />
+                            <Route path="/vazifalar" element={
+                                <ProtectedRoute><Vazifalar /></ProtectedRoute>
+                            } />
+                            <Route path="/analitika" element={
+                                <ProtectedRoute><Analitika /></ProtectedRoute>
+                            } />
+                            <Route path="/hal-qilingan" element={
+                                <ProtectedRoute><HalQilingan /></ProtectedRoute>
+                            } />
+                            <Route path="/tashkilotlar" element={
+                                <ProtectedRoute><Tashkilotlar /></ProtectedRoute>
+                            } />
+                            <Route path="/register" element={
+                                <ProtectedRoute><Register /></ProtectedRoute>
+                            } />
 
                             {/* 404 page */}
                             <Route path="*" element={<NotFound />} />

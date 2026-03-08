@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Calendar } from "lucide-react";
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { Progress } from "@/components/ui/progress";
 import AssignTaskModal from "@/components/AssignTaskModal";
 
-import { api } from "@/lib/api";
+import { api, downloadMahallaReport } from "@/lib/api";
 import { useApiData } from "@/hooks/useApiData";
 import {
   statusColors,
@@ -19,10 +19,33 @@ const MahallaDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!startDate || !endDate) {
+      alert("Iltimos, boshlang'ich va tugash sanalarni tanlang");
+      return;
+    }
+    if (startDate > endDate) {
+      alert("Boshlang'ich sana tugash sanadan oldin bo'lishi kerak");
+      return;
+    }
+    setDownloading(true);
+    try {
+      await downloadMahallaReport(id, startDate, endDate);
+    } catch (err) {
+      alert("Yuklash xatosi: " + err.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data: mahalla, loading } = useApiData(
       () => api.getMahallaDetail(id),
-      null
+      null,
+      [id]
   );
 
   if (loading) {
@@ -51,19 +74,48 @@ const MahallaDetail = () => {
         <div className="animate-fade-in">
 
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <button
-                onClick={() => navigate(-1)}
-                className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
-            >
-              <ArrowLeft className="w-5 h-5 text-foreground" />
-            </button>
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <button
+                  onClick={() => navigate(-1)}
+                  className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
+              >
+                <ArrowLeft className="w-5 h-5 text-foreground" />
+              </button>
 
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {mahalla.name}
-              </h1>
-              <p className="text-sm text-muted-foreground">{mahalla.city}</p>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {mahalla.name}
+                </h1>
+                <p className="text-sm text-muted-foreground">{mahalla.city}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-muted">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent text-sm text-foreground outline-none w-28"
+                />
+                <span className="text-muted-foreground">-</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent text-sm text-foreground outline-none w-28"
+                />
+              </div>
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Download className="w-4 h-4" />
+                {downloading ? "Yuklanmoqda..." : "Yuklash"}
+              </button>
             </div>
           </div>
 

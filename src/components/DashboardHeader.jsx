@@ -1,14 +1,24 @@
-import { Search, User, Sparkles, MapPin } from "lucide-react";
+import { Search, User, Sparkles, MapPin, LogOut } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import ThemeToggle from "@/components/ThemeToggle";
 import { motion } from "framer-motion";
+import { logout, getUser } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 const DashboardHeader = () => {
   const now = new Date();
   const hour = now.getHours();
   const greeting =
       hour < 12 ? "Xayrli tong" : hour < 18 ? "Xayrli kun" : "Xayrli kech";
+  
+  const user = getUser();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
       <header className="sticky top-0 z-50 border-b  overflow-hidden">
@@ -81,6 +91,14 @@ const DashboardHeader = () => {
                   <User className="w-4 h-4 text-primary-foreground" />
                 </button>
               </div>
+
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-red-500"
+                title="Chiqish"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
 
           </div>

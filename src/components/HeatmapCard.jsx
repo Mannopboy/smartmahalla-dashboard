@@ -32,8 +32,7 @@ const icons = {
 };
 
 const getColor = (count) => {
-    if (count >= 70) return "hsl(0, 84%, 60%)";
-    if (count >= 40) return "hsl(38, 92%, 50%)";
+    if (count > 0) return "hsl(0, 84%, 60%)";
     return "hsl(142, 71%, 45%)";
 };
 
@@ -128,7 +127,7 @@ const HeatmapCard = () => {
             const resolved = Number(m.resolved) || 0;
 
             L.circle([m.lat, m.lng], {
-                radius: 200 + complaints * 2,
+                radius: 300,
                 color: getColor(complaints),
                 fillColor: getColor(complaints),
                 fillOpacity: 0.15,
@@ -137,7 +136,7 @@ const HeatmapCard = () => {
             }).addTo(markerLayerRef.current);
 
             const marker = L.circleMarker([m.lat, m.lng], {
-                radius: Math.max(6, Math.min(14, complaints / 6)),
+                radius: 10,
                 color: getColor(complaints),
                 fillColor: getColor(complaints),
                 fillOpacity: 0.7,
