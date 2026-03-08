@@ -258,7 +258,35 @@ export const api = {
             })),
         };
     },
+    getMahallaOverview: async () => {
+        const data = await get("/mahalla");
 
+        return {
+            mahalla: data?.mahalla || { id: null, name: "Barcha mahallalar" },
+            summary: {
+                active_issues: toNumber(data?.summary?.active_issues),
+                resolved_count: toNumber(data?.summary?.resolved_count),
+                resolved_percent: toNumber(data?.summary?.resolved_percent),
+                total_complaints: toNumber(data?.summary?.total_complaints),
+            },
+            category_chart: toArray(data?.category_chart).map((item) => ({
+                name: toText(item?.name),
+                value: toNumber(item?.value),
+            })),
+            organization_chart: toArray(data?.organization_chart).map((item) => ({
+                name: toText(item?.name),
+                value: toNumber(item?.value),
+            })),
+            departments: toArray(data?.departments).map((item) => ({
+                id: item?.id,
+                name: toText(item?.name),
+                total: toNumber(item?.total),
+                active: toNumber(item?.active),
+                resolved: toNumber(item?.resolved),
+                resolved_percent: toNumber(item?.resolved_percent),
+            })),
+        };
+    },
     getOrganizations: async () => {
         const data = await get("/organizations");
 

@@ -1,372 +1,294 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-    Search,
-    Filter,
-    Bot,
-    Globe,
-    Sparkles,
-    GripVertical,
-    Clock,
-    CheckCircle2,
-    AlertCircle,
-    ChevronDown,
-    Upload,
-    Play,
-    Wrench,
-    Droplets,
-    Car,
-    TreePine,
-    Building,
-    AlertTriangle,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    DndContext,
-    DragOverlay,
-    closestCorners,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    useDroppable,
-    useDraggable,
-} from "@dnd-kit/core";
-
 import DashboardLayout from "@/components/DashboardLayout";
 import BackButton from "@/components/BackButton";
-import AssignTaskModal from "@/components/AssignTaskModal";
-
 import { api } from "@/lib/api";
 import { useApiData } from "@/hooks/useApiData";
-import { categoryColors, priorityColors } from "@/lib/constants";
+import { motion } from "framer-motion";
 
-/* ================= SOURCE ================= */
+import {
+    AlertCircle,
+    CheckCircle2,
+    Clock,
+    FileText,
+    Building2,
+    PieChart as PieChartIcon,
+    Activity,
+    TrendingUp,
+} from "lucide-react";
 
-const sourceIcons = {
-    "Telegram Bot": <Bot className="w-3.5 h-3.5" />,
-    "Landing Page": <Globe className="w-3.5 h-3.5" />,
-    AI: <Sparkles className="w-3.5 h-3.5" />,
-};
+import {
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip,
+    Legend,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+} from "recharts";
 
-const sourceColors = {
-    "Telegram Bot": "bg-primary/10 text-primary",
-    "Landing Page": "bg-success/10 text-success",
-    AI: "bg-warning/10 text-warning",
-};
+const COLORS = ["#2f80ed", "#27ae60", "#f2c94c", "#eb5757", "#56ccf2"];
 
-/* ================= COLUMNS ================= */
-
-const columnConfig = [
-    {
-        status: "Yangi",
-        label: "Yangi",
-        icon: <AlertCircle className="w-4 h-4" />,
-        accent: "border-t-destructive",
-        headerBg: "bg-destructive/5",
-    },
-    {
-        status: "Yuklandi",
-        label: "Yuklandi",
-        icon: <Upload className="w-4 h-4" />,
-        accent: "border-t-primary",
-        headerBg: "bg-primary/5",
-    },
-    {
-        status: "Jarayonda",
-        label: "Jarayonda",
-        icon: <Clock className="w-4 h-4" />,
-        accent: "border-t-warning",
-        headerBg: "bg-warning/5",
-    },
-    {
-        status: "Bajarildi",
-        label: "Bajarildi",
-        icon: <CheckCircle2 className="w-4 h-4" />,
-        accent: "border-t-success",
-        headerBg: "bg-success/5",
-    },
-];
-
-/* ================= CATEGORY ICONS ================= */
-
-const iconByCategory = {
-    Kommunal: Wrench,
-    "Yo'l": Car,
-    Ekologiya: TreePine,
-    Adliya: Building,
-    Ijtimoiy: Droplets,
-};
-
-/* ================= HELPERS ================= */
-
-const getTaskSource = (task) => {
-    const s = String(task.source || "").toLowerCase();
-    if (s.includes("telegram")) return "Telegram Bot";
-    if (s.includes("landing")) return "Landing Page";
-    return "AI";
-};
-
-const toProblemFromTask = (task) => {
-    const category = task.category || "Kommunal";
-    const priority = task.priority || "O'rta";
-    const Icon = iconByCategory[category] || AlertTriangle;
-
-    return {
-        id: task.id,
-        title: task.name || task.title || "Vazifa",
-        description: task.description || task.comment || "",
-        category,
-        priority,
-        date: task.deadline || task.created_at || "-",
-        mahalla: task.mahalla || "Noma'lum",
-        source: getTaskSource(task),
-        org: task.org || "",
-        icon: Icon,
-        status: "Yangi",
-    };
-};
-
-/* ================= DROPPABLE COLUMN ================= */
-
-function DroppableColumn({ id, children, config, count }) {
-    const { setNodeRef, isOver } = useDroppable({ id });
-
-    return (
-        <div
-            ref={setNodeRef}
-            className={`flex flex-col rounded-2xl border border-border border-t-4 ${config.accent} min-h-[420px] ${
-                isOver ? "ring-2 ring-primary/30 bg-primary/[0.02]" : "bg-card/50"
-            }`}
-        >
-            <div className={`flex items-center gap-2 px-3 py-3 ${config.headerBg}`}>
-                {config.icon}
-                <h3 className="text-xs font-bold">{config.label}</h3>
-                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-muted">
-          {count}
-        </span>
-            </div>
-
-            <div className="flex-1 p-1.5 space-y-1.5 overflow-y-auto max-h-[60vh]">
-                {children}
-            </div>
+const StatCard = ({ icon: Icon, label, value, iconBg }) => (
+    <div className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center gap-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+            <Icon className="w-6 h-6" />
         </div>
-    );
-}
 
-/* ================= DRAGGABLE CARD ================= */
-
-function DraggableCard({ problem, showSource, onStart }) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } =
-        useDraggable({
-            id: `problem-${problem.id}`,
-            data: { problem },
-        });
-
-    const style = transform
-        ? { transform: `translate(${transform.x}px, ${transform.y}px)` }
-        : undefined;
-
-    const Icon = problem.icon;
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            {...listeners}
-            {...attributes}
-            className={`group relative rounded-xl border border-border bg-card p-3 cursor-grab active:cursor-grabbing ${
-                isDragging ? "opacity-40 scale-95" : ""
-            }`}
-        >
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-40">
-                <GripVertical className="w-3.5 h-3.5" />
-            </div>
-
-            <div className="flex items-start gap-2">
-                <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                        categoryColors[problem.category] || "bg-muted"
-                    }`}
-                >
-                    <Icon className="w-3.5 h-3.5" />
-                </div>
-
-                <div className="flex-1">
-                    <h4 className="text-[11px] font-bold truncate">{problem.title}</h4>
-                    <p className="text-[9px] text-muted-foreground truncate">
-                        {problem.description}
-                    </p>
-                </div>
-            </div>
-
-            <div className="flex items-center gap-1 mt-2 flex-wrap">
-        <span
-            className={`px-1.5 py-0.5 rounded text-[8px] ${
-                priorityColors[problem.priority]
-            }`}
-        >
-          {problem.priority}
-        </span>
-
-                <span className="px-1.5 py-0.5 rounded text-[8px] bg-muted">
-          {problem.mahalla}
-        </span>
-
-                {showSource && (
-                    <span
-                        className={`px-1.5 py-0.5 rounded text-[8px] ${
-                            sourceColors[problem.source]
-                        }`}
-                    >
-            {sourceIcons[problem.source]} {problem.source}
-          </span>
-                )}
-            </div>
-
-            {onStart && (
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onStart();
-                    }}
-                    className="mt-2 text-[8px] px-2 py-0.5 rounded bg-warning/15 text-warning"
-                >
-                    <Play className="w-2.5 h-2.5 inline" /> Boshlash
-                </button>
-            )}
+        <div>
+            <p className="text-sm text-muted-foreground">{label}</p>
+            <p className="text-2xl font-bold">{value}</p>
         </div>
-    );
-}
-
-/* ================= MAIN PAGE ================= */
+    </div>
+);
 
 const Shikoyatlar = () => {
-    const [problems, setProblems] = useState([]);
-    const [search, setSearch] = useState("");
-    const [orgFilter, setOrgFilter] = useState("Barcha");
-    const [modalOpen, setModalOpen] = useState(false);
-    const [pendingProblemId, setPendingProblemId] = useState(null);
-    const [draggedProblem, setDraggedProblem] = useState(null);
 
-    const { data: tasks = [] } = useApiData(api.getTasks, []);
-    const { data: organizations = [] } = useApiData(api.getOrganizations, []);
+    const { data } = useApiData(api.getMahallaOverview, {
+        mahalla: { name: "Barcha mahallalar" },
+        summary: {
+            active_issues: 0,
+            resolved_count: 0,
+            resolved_percent: 0,
+            total_complaints: 0,
+        },
+        category_chart: [],
+        organization_chart: [],
+        departments: [],
+    });
 
-    useEffect(() => {
-        setProblems(tasks.map(toProblemFromTask));
-    }, [tasks]);
+    const unresolved =
+        data.summary.total_complaints -
+        data.summary.resolved_count -
+        data.summary.active_issues;
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-    );
-
-    const filtered = useMemo(() => {
-        return problems.filter((p) => {
-            const matchSearch =
-                p.title.toLowerCase().includes(search.toLowerCase()) ||
-                p.mahalla.toLowerCase().includes(search.toLowerCase());
-
-            const matchOrg = orgFilter === "Barcha" || p.org === orgFilter;
-
-            return matchSearch && matchOrg;
-        });
-    }, [problems, search, orgFilter]);
-
-    const columns = {
-        Yangi: filtered.filter((p) => p.status === "Yangi"),
-        Yuklandi: filtered.filter((p) => p.status === "Yuklandi"),
-        Jarayonda: filtered.filter((p) => p.status === "Jarayonda"),
-        Bajarildi: filtered.filter((p) => p.status === "Bajarildi"),
-    };
-
-    const handleDragStart = (event) => {
-        setDraggedProblem(event.active.data.current?.problem);
-    };
-
-    const handleDragEnd = (event) => {
-        const { active, over } = event;
-        setDraggedProblem(null);
-
-        if (!over) return;
-
-        const problem = active.data.current?.problem;
-        const target = over.id;
-
-        if (problem.status === "Yangi" && target === "Yuklandi") {
-            setPendingProblemId(problem.id);
-            setModalOpen(true);
-            return;
-        }
-
-        if (problem.status === "Jarayonda" && target === "Bajarildi") {
-            setProblems((prev) =>
-                prev.map((p) =>
-                    p.id === problem.id ? { ...p, status: "Bajarildi" } : p
-                )
-            );
-        }
-    };
-
-    const handleModalSubmit = () => {
-        setProblems((prev) =>
-            prev.map((p) =>
-                p.id === pendingProblemId ? { ...p, status: "Yuklandi" } : p
-            )
-        );
-        setModalOpen(false);
-        setPendingProblemId(null);
-    };
+    const completionText = `${data.summary.resolved_count} / ${data.summary.total_complaints} bajarildi`;
 
     return (
         <DashboardLayout>
-            <div className="flex flex-col h-full">
-                <div className="flex items-center gap-3 mb-4">
+            <div className="space-y-6">
+
+                {/* HEADER */}
+
+                <div className="flex items-center gap-3">
                     <BackButton />
-                    <h1 className="text-xl font-bold">Shikoyatlar Boshqaruvi</h1>
-                </div>
-
-                <div className="gov-card mb-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input
-                            className="w-full h-9 pl-9 pr-4 rounded-xl bg-muted border-0 text-sm"
-                            placeholder="Qidirish..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                    <div>
+                        <h1 className="text-2xl font-bold">Shikoyatlar statistikasi</h1>
+                        <p className="text-sm text-muted-foreground">
+                            {data.mahalla?.name}
+                        </p>
                     </div>
                 </div>
 
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCorners}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                >
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                        {columnConfig.map((col) => (
-                            <DroppableColumn
-                                key={col.status}
-                                id={col.status}
-                                config={col}
-                                count={columns[col.status].length}
-                            >
-                                {columns[col.status].map((problem) => (
-                                    <DraggableCard key={problem.id} problem={problem} />
-                                ))}
-                            </DroppableColumn>
+                {/* STAT CARDS */}
+
+                <div className="grid md:grid-cols-4 gap-5">
+
+                    <StatCard
+                        icon={FileText}
+                        label="Jami murojaatlar"
+                        value={data.summary.total_complaints}
+                        iconBg="bg-blue-100 text-blue-600"
+                    />
+
+                    <StatCard
+                        icon={Clock}
+                        label="Jarayonda"
+                        value={data.summary.active_issues}
+                        iconBg="bg-blue-100 text-blue-600"
+                    />
+
+                    <StatCard
+                        icon={CheckCircle2}
+                        label="Bajarildi"
+                        value={data.summary.resolved_count}
+                        iconBg="bg-green-100 text-green-600"
+                    />
+
+                    <StatCard
+                        icon={AlertCircle}
+                        label="Bajarilmadi"
+                        value={unresolved}
+                        iconBg="bg-red-100 text-red-600"
+                    />
+
+                </div>
+
+                {/* CHARTS */}
+
+                <div className="grid xl:grid-cols-3 gap-6">
+
+                    {/* PIE */}
+
+                    <div className="bg-card border rounded-xl p-5 shadow-sm">
+                        <h2 className="font-semibold mb-4 flex items-center gap-2">
+                            <PieChartIcon className="w-5 h-5 text-blue-500" />
+                            Kategoriya bo'yicha
+                        </h2>
+
+                        <ResponsiveContainer width="100%" height={260}>
+                            <PieChart>
+
+                                <Pie
+                                    data={data.category_chart}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    innerRadius={70}
+                                    outerRadius={100}
+                                >
+                                    {data.category_chart.map((_, i) => (
+                                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                                    ))}
+                                </Pie>
+
+                                <Legend />
+                                <Tooltip />
+
+                            </PieChart>
+                        </ResponsiveContainer>
+
+                    </div>
+
+                    {/* BAR */}
+
+                    <div className="bg-card border rounded-xl p-5 shadow-sm">
+
+                        <h2 className="font-semibold mb-4 flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-green-500" />
+                            Bo'lim bo'yicha
+                        </h2>
+
+                        <ResponsiveContainer width="100%" height={260}>
+                            <BarChart data={data.organization_chart} layout="vertical">
+
+                                <CartesianGrid strokeDasharray="3 3" />
+
+                                <XAxis type="number" />
+                                <YAxis dataKey="name" type="category" width={120} />
+
+                                <Bar
+                                    dataKey="value"
+                                    fill="#2D9CDB"
+                                    radius={[8,8,8,8]}
+                                />
+
+                            </BarChart>
+                        </ResponsiveContainer>
+
+                    </div>
+
+                    {/* PROGRESS */}
+
+                    <div className="bg-card border rounded-xl p-5 shadow-sm text-center">
+
+                        <h2 className="font-semibold mb-6 flex items-center gap-2 justify-center">
+                            <TrendingUp className="w-5 h-5 text-green-500" />
+                            Bajarilish darajasi
+                        </h2>
+
+                        <div className="relative w-40 h-40 mx-auto">
+
+                            <svg viewBox="0 0 100 100">
+
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
+                                    fill="none"
+                                    stroke="#e5e7eb"
+                                    strokeWidth="10"
+                                />
+
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="40"
+                                    fill="none"
+                                    stroke="#27ae60"
+                                    strokeWidth="10"
+                                    strokeDasharray={`${data.summary.resolved_percent * 2.51} 251`}
+                                    strokeLinecap="round"
+                                />
+
+                            </svg>
+
+                            <div className="absolute inset-0 flex items-center justify-center text-3xl font-bold">
+                                {data.summary.resolved_percent}%
+                            </div>
+
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mt-4">
+                            {completionText}
+                        </p>
+
+                    </div>
+
+                </div>
+
+                {/* DEPARTMENTS */}
+
+                <div>
+
+                    <h2 className="text-xl font-bold mb-4">
+                        Bo'limlar bo'yicha statistika
+                    </h2>
+
+                    <div className="grid md:grid-cols-3 gap-5">
+
+                        {data.departments.map((d) => (
+
+                            <div key={d.id} className="bg-card border rounded-xl p-5 shadow-sm">
+
+                                <div className="flex justify-between mb-4">
+
+                                    <h3 className="font-semibold">{d.name}</h3>
+
+                                    <span className="text-green-600 font-semibold">
+                    {Math.round(d.resolved_percent)}%
+                  </span>
+
+                                </div>
+
+                                <div className="space-y-2 text-sm">
+
+                                    <p className="flex justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      Jarayonda
+                    </span>
+                                        {d.active}
+                                    </p>
+
+                                    <p className="flex justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Bajarildi
+                    </span>
+                                        {d.resolved}
+                                    </p>
+
+                                    <p className="flex justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      Bajarilmadi
+                    </span>
+                                        {d.total - d.active - d.resolved}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
                         ))}
+
                     </div>
 
-                    <DragOverlay>
-                        {draggedProblem && <DraggableCard problem={draggedProblem} />}
-                    </DragOverlay>
-                </DndContext>
-            </div>
+                </div>
 
-            <AssignTaskModal
-                open={modalOpen}
-                onClose={() => setModalOpen(false)}
-                onSubmit={handleModalSubmit}
-            />
+            </div>
         </DashboardLayout>
     );
 };
