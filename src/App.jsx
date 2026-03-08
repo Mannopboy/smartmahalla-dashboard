@@ -13,6 +13,7 @@ import Vazifalar from "./pages/Vazifalar.jsx";
 import Analitika from "./pages/Analitika.jsx";
 import HalQilingan from "./pages/HalQilingan.jsx";
 import Tashkilotlar from "./pages/Tashkilotlar.jsx";
+import DepartmentDetail from "./pages/DepartmentDetail.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -51,6 +52,9 @@ const App = () => (
                             } />
                             <Route path="/shikoyatlar" element={
                                 <ProtectedRoute><Shikoyatlar /></ProtectedRoute>
+                            } />
+                            <Route path="/department/:id" element={
+                                <ProtectedRoute><DepartmentDetail /></ProtectedRoute>
                             } />
                             <Route path="/vazifalar" element={
                                 <ProtectedRoute><Vazifalar /></ProtectedRoute>

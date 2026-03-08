@@ -229,7 +229,13 @@ export const api = {
     },
 
     getMahallaDetail: async (id) => {
-        const data = await get(`/mahalla/${id}`);
+        let data;
+
+        try {
+            data = await get(`/mahalla?mahalla_id=${encodeURIComponent(id)}`);
+        } catch {
+            data = await get(`/mahalla/${id}`);
+        }
 
         const normalizeStatus = (status = "") => {
             const s = String(status).toLowerCase();
@@ -258,8 +264,18 @@ export const api = {
             })),
         };
     },
-    getMahallaOverview: async () => {
-        const data = await get("/mahalla");
+    getMahallaOverview: async (mahallaId) => {
+        let data;
+
+        if (mahallaId) {
+            try {
+                data = await get(`/mahalla?mahalla_id=${encodeURIComponent(mahallaId)}`);
+            } catch {
+                data = await get(`/mahalla?mahala_id=${encodeURIComponent(mahallaId)}`);
+            }
+        } else {
+            data = await get("/mahalla");
+        }
 
         return {
             mahalla: data?.mahalla || { id: null, name: "Barcha mahallalar" },
@@ -287,6 +303,74 @@ export const api = {
             })),
         };
     },
+
+    getDepartmentDetail: async (departmentId, mahallaId) => {
+        let data;
+
+        if (mahallaId) {
+            try {
+                data = await get(
+                    `/department/${departmentId}?mahalla_id=${encodeURIComponent(mahallaId)}`
+                );
+            } catch {
+                data = await get(
+                    `/department/${departmentId}?mahala_id=${encodeURIComponent(mahallaId)}`
+                );
+            }
+        } else {
+            data = await get(`/department/${departmentId}`);
+        }
+
+        const normalizeDepartmentStatus = (status = "") => {
+            const s = toText(status).toLowerCase();
+            if (s === "new") return "Yangi";
+            if (s === "in process" || s === "in_process" || s === "jarayonda") {
+                return "Jarayonda";
+            }
+            if (s === "resolved" || s === "done" || s === "bajarildi") {
+                return "Bajarildi";
+            }
+            if (s === "failed" || s === "bajarilmadi") return "Bajarilmadi";
+            return toText(status);
+        };
+
+        const complaints = toArray(data?.complaints).map((item) => ({
+            id: item?.id,
+            text: toText(item?.text),
+            user: toText(item?.user),
+            category: toText(item?.category),
+            date: toText(item?.date),
+            deadline: toText(item?.deadline),
+            status: normalizeDepartmentStatus(item?.status),
+        }));
+
+        const total = complaints.length;
+        const resolved = complaints.filter((c) => c.status === "Bajarildi").length;
+        const active = complaints.filter((c) => c.status === "Jarayonda").length;
+        const unresolved = Math.max(total - resolved - active, 0);
+
+        return {
+            department: {
+                id: data?.id ?? departmentId,
+                name: toText(data?.name || data?.department || "Bo'lim"),
+            },
+            summary: {
+                total,
+                active,
+                resolved,
+                unresolved,
+                resolved_percent: total ? Math.round((resolved / total) * 100) : 0,
+            },
+            complaints,
+            status_chart: [
+                { name: "Yangi", value: complaints.filter((c) => c.status === "Yangi").length },
+                { name: "Jarayonda", value: active },
+                { name: "Bajarildi", value: resolved },
+                { name: "Bajarilmadi", value: unresolved },
+            ],
+        };
+    },
+
     getOrganizations: async () => {
         const data = await get("/organizations");
 

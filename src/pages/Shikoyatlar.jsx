@@ -1,8 +1,9 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import BackButton from "@/components/BackButton";
-import { api } from "@/lib/api";
+import { api, downloadMahallaReport } from "@/lib/api";
 import { useApiData } from "@/hooks/useApiData";
-import { motion } from "framer-motion";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
 
 import {
     AlertCircle,
@@ -13,6 +14,8 @@ import {
     PieChart as PieChartIcon,
     Activity,
     TrendingUp,
+    Calendar,
+    Download,
 } from "lucide-react";
 
 import {
@@ -45,8 +48,14 @@ const StatCard = ({ icon: Icon, label, value, iconBg }) => (
 );
 
 const Shikoyatlar = () => {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const mahallaId = searchParams.get("mahalla_id");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [downloading, setDownloading] = useState(false);
 
-    const { data } = useApiData(api.getMahallaOverview, {
+    const { data } = useApiData(() => api.getMahallaOverview(mahallaId), {
         mahalla: { name: "Barcha mahallalar" },
         summary: {
             active_issues: 0,
@@ -57,7 +66,7 @@ const Shikoyatlar = () => {
         category_chart: [],
         organization_chart: [],
         departments: [],
-    });
+    }, [mahallaId]);
 
     const unresolved =
         data.summary.total_complaints -
@@ -65,6 +74,27 @@ const Shikoyatlar = () => {
         data.summary.active_issues;
 
     const completionText = `${data.summary.resolved_count} / ${data.summary.total_complaints} bajarildi`;
+
+    const handleDownload = async () => {
+        if (!mahallaId) return;
+        if (!startDate || !endDate) {
+            alert("Iltimos, boshlang'ich va tugash sanalarni tanlang");
+            return;
+        }
+        if (startDate > endDate) {
+            alert("Boshlang'ich sana tugash sanadan oldin bo'lishi kerak");
+            return;
+        }
+
+        setDownloading(true);
+        try {
+            await downloadMahallaReport(mahallaId, startDate, endDate);
+        } catch (err) {
+            alert(`Yuklash xatosi: ${err.message}`);
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -81,6 +111,36 @@ const Shikoyatlar = () => {
                         </p>
                     </div>
                 </div>
+
+                {mahallaId && (
+                    <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-muted">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="bg-transparent text-sm text-foreground outline-none w-28"
+                            />
+                            <span className="text-muted-foreground">-</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="bg-transparent text-sm text-foreground outline-none w-28"
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleDownload}
+                            disabled={downloading}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                            <Download className="w-4 h-4" />
+                            {downloading ? "Yuklanmoqda..." : "Yuklash"}
+                        </button>
+                    </div>
+                )}
 
                 {/* STAT CARDS */}
 
@@ -240,7 +300,17 @@ const Shikoyatlar = () => {
 
                         {data.departments.map((d) => (
 
-                            <div key={d.id} className="bg-card border rounded-xl p-5 shadow-sm">
+                            <div
+                                key={d.id}
+                                onClick={() =>
+                                    navigate(
+                                        mahallaId
+                                            ? `/department/${d.id}?mahalla_id=${mahallaId}`
+                                            : `/department/${d.id}`
+                                    )
+                                }
+                                className="bg-card border rounded-xl p-5 shadow-sm cursor-pointer hover:border-primary/40 hover:bg-muted/30 transition-colors"
+                            >
 
                                 <div className="flex justify-between mb-4">
 
@@ -275,7 +345,7 @@ const Shikoyatlar = () => {
                       <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                       Bajarilmadi
                     </span>
-                                        {d.total - d.active - d.resolved}
+                                        {Math.max(d.total - d.active - d.resolved, 0)}
                                     </p>
 
                                 </div>

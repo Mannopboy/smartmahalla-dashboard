@@ -120,19 +120,36 @@ const HeatmapCard = () => {
 
         markerLayerRef.current.clearLayers();
 
-        mahallasData.forEach((m) => {
-            if (typeof m.lat !== "number" || typeof m.lng !== "number") return;
+        const validMahallas = mahallasData
+            .map((m) => ({
+                ...m,
+                lat: Number(m.lat),
+                lng: Number(m.lng),
+            }))
+            .filter((m) => Number.isFinite(m.lat) && Number.isFinite(m.lng));
 
+        const isGeneralView = validMahallas.length !== 1;
+
+        if (isGeneralView) {
+            mapRef.current.setView(CHIRCHIQ_CENTER, 13, { animate: false });
+        } else {
+            mapRef.current.setView(
+                [validMahallas[0].lat, validMahallas[0].lng],
+                14,
+                { animate: false }
+            );
+        }
+
+        validMahallas.forEach((m) => {
             const complaints = Number(m.complaints) || 0;
             const resolved = Number(m.resolved) || 0;
 
             L.circle([m.lat, m.lng], {
-                radius: 300,
+                radius: 800,
                 color: getColor(complaints),
                 fillColor: getColor(complaints),
-                fillOpacity: 0.15,
-                weight: 2,
-                dashArray: "5 5",
+                fillOpacity: 0.22,
+                weight: 2.5,
             }).addTo(markerLayerRef.current);
 
             const marker = L.circleMarker([m.lat, m.lng], {
@@ -152,7 +169,7 @@ const HeatmapCard = () => {
             );
 
             marker.on("click", () => {
-                if (m.id) navigate(`/mahallalar/${m.id}`);
+                if (m.id) navigate(`/shikoyatlar?mahalla_id=${m.id}`);
             });
 
             marker.addTo(markerLayerRef.current);

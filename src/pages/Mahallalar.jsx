@@ -101,7 +101,7 @@ const Mahallalar = () => {
                       <TableRow
                           key={m.id}
                           className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/mahallalar/${m.id}`)}
+                          onClick={() => navigate(`/shikoyatlar?mahalla_id=${m.id}`)}
                       >
                         <TableCell className="font-medium">{m.name}</TableCell>
 
